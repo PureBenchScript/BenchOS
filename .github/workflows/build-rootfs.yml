@@ -41,23 +41,13 @@ jobs:
         with:
           name: BenchOS
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create and upload GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: BenchOS-${{ github.sha }}
-          release_name: BenchOS ${{ github.sha }}
+          name: BenchOS ${{ github.sha }}
+          files: ./BenchOS.tar.gz
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload release asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./BenchOS.tar.gz
-          asset_name: BenchOS.tar.gz
-          asset_content_type: application/gzip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
