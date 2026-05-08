@@ -7,11 +7,12 @@ on:
 jobs:
   build-rootfs:
     runs-on: ubuntu-latest
-    outputs:
-      artifact-name: BenchOS.tar.gz
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install tools
         run: |
@@ -20,33 +21,42 @@ jobs:
 
       - name: Bootstrap Debian 13 (trixie) rootfs
         run: |
+          set -euo pipefail
+          ARCH=${{ matrix.arch }}
           sudo rm -rf rootfs
-          sudo debootstrap --arch=amd64 --variant=minbase trixie rootfs http://deb.debian.org/debian
-          sudo tar -C rootfs -czf BenchOS.tar.gz .
-          sudo chown $(id -u):$(id -g) BenchOS.tar.gz
+          if [ "$ARCH" = "amd64" ]; then DEB_ARCH=amd64; else DEB_ARCH=arm64; fi
+          sudo debootstrap --arch=$DEB_ARCH --variant=minbase trixie rootfs http://deb.debian.org/debian
+          TARNAME=BenchOS-${ARCH}.tar.gz
+          sudo tar -C rootfs -czf "$TARNAME" .
+          sudo chown $(id -u):$(id -g) "$TARNAME"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: BenchOS
-          path: BenchOS.tar.gz
+          name: BenchOS-${{ matrix.arch }}
+          path: BenchOS-${{ matrix.arch }}.tar.gz
 
   release:
     needs: build-rootfs
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Download amd64 artifact
+        uses: actions/download-artifact@v8
         with:
-          name: BenchOS
+          name: BenchOS-amd64
+
+      - name: Download arm64 artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: BenchOS-arm64
 
       - name: Create and upload GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: BenchOS-${{ github.sha }}
           name: BenchOS ${{ github.sha }}
-          files: ./BenchOS.tar.gz
+          files: ./BenchOS-*.tar.gz
           draft: false
           prerelease: false
         env:
