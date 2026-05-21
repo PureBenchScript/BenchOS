@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+source /opt/nodequality/common/runtime.sh
+
+module="${1:-}"
+if [[ -z "$module" ]]; then
+  nq_error "Usage: nq-run-module <hardware|ip|net> [args...]"
+  exit 2
+fi
+
+shift
+nq_run_module "$module" "$@"
