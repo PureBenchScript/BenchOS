@@ -36,11 +36,11 @@ jobs:
           if [ "$ARCH" = "amd64" ]; then DEB_ARCH=amd64; else DEB_ARCH=arm64; fi
           sudo debootstrap --arch=$DEB_ARCH --variant=minbase trixie rootfs http://deb.debian.org/debian
 
-      - name: Copy init script into rootfs
+      - name: Copy BenchOS source into rootfs
         run: |
-          sudo mkdir -p rootfs/tmp
-          sudo cp init.sh rootfs/tmp/init.sh
-          sudo chmod +x rootfs/tmp/init.sh
+          sudo mkdir -p rootfs/tmp/BenchOS
+          sudo tar --exclude='.git' -C . -cf - . | sudo tar -C rootfs/tmp/BenchOS -xf -
+          sudo chmod +x rootfs/tmp/BenchOS/init.sh
 
       - name: Prepare qemu static for arm64
         if: ${{ matrix.arch == 'arm64' }}
@@ -57,7 +57,11 @@ jobs:
         run: |
           set -euo pipefail
           echo "Running init.sh inside chroot"
-          sudo chroot rootfs /bin/bash -c "/tmp/init.sh"
+          sudo chroot rootfs /bin/bash -c "/tmp/BenchOS/init.sh"
+
+      - name: Cleanup build source
+        run: |
+          sudo rm -rf rootfs/tmp/BenchOS
 
       - name: Cleanup qemu static (arm64)
         if: ${{ matrix.arch == 'arm64' }}
